@@ -8,6 +8,7 @@ internet or the user's torrent client.
 from __future__ import annotations
 
 import http.server
+import io
 import json
 import tempfile
 import threading
@@ -22,6 +23,7 @@ from ia_reviver.progress import Console
 from ia_reviver.qbittorrent import QbitClient
 from ia_reviver.revive import (
     LockError,
+    build_plans,
     collect_candidates,
     revive_plan,
     torrent_lock,
@@ -286,6 +288,19 @@ class EndToEndTest(unittest.TestCase):
         self.assertEqual(records[0]["identifier"], IDENT)
         self.assertTrue(records[0]["completed"])
         self.assertEqual(records[0]["after"], 1.0)
+
+    def test_planning_drives_a_visible_counter(self):
+        """Planning talks to archive.org per torrent, so it must show movement."""
+        stream = io.StringIO()
+        console = Console(stream=stream)
+
+        plans, failures = build_plans(
+            self.client, self.archive, collect_candidates(self.client), console=console
+        )
+
+        self.assertEqual(len(plans), 1)
+        self.assertEqual(failures, [])
+        self.assertIn("[  1/1]", stream.getvalue())
 
     def test_stopped_torrent_is_not_reported_as_seeding(self):
         # Added paused, and left paused: complete, but reaching nobody.

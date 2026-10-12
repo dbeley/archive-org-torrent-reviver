@@ -32,7 +32,10 @@ class Console:
         self.quiet = quiet
         self.verbose = verbose
         self.stream = stream or sys.stdout
-        self.color = is_tty(self.stream)
+        self.tty = is_tty(self.stream)
+        self.color = self.tty
+        self._progress_visible = False
+        self._last_progress = 0.0
 
     def _wrap(self, text: str, code: str) -> str:
         return f"\033[{code}m{text}\033[0m" if self.color else text
@@ -64,6 +67,34 @@ class Console:
     def section(self, title: str) -> None:
         if not self.quiet:
             self._write(self._wrap(title, "1"))
+
+    def progress(self, current: int, total: int, label: str) -> None:
+        """Live counter for phases that spend minutes fetching before printing.
+
+        Planning has to talk to archive.org once per torrent before it can show
+        anything, so without this a run over dozens of torrents sits silent for
+        minutes and is indistinguishable from a hang. On a terminal the line is
+        rewritten in place; when piped (cron, systemd, `| tee`) it emits a line
+        every few seconds instead, so a log still shows movement.
+        """
+        if self.quiet:
+            return
+        text = f"  [{current:>3}/{total}] {label}"
+        if self.tty:
+            print(f"\r\033[K{text}", end="", file=self.stream, flush=True)
+            self._progress_visible = True
+            return
+        now = time.monotonic()
+        if current != total and now - self._last_progress < 5.0:
+            return
+        self._last_progress = now
+        self._write(text)
+
+    def progress_done(self) -> None:
+        """Erase the in-place counter, if one is on screen."""
+        if self._progress_visible:
+            print("\r\033[K", end="", file=self.stream, flush=True)
+            self._progress_visible = False
 
 
 @dataclass(slots=True)

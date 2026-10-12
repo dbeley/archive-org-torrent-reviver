@@ -6,6 +6,20 @@ Notable changes to `ia-reviver`. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Planning no longer looks like a hang.** Building the plan costs at least one
+  archive.org round-trip per torrent, and the phase printed nothing until every
+  torrent had been planned — so a library of dozens of dead torrents sat silent
+  for minutes with no way to tell work from a stall. Planning now shows a live
+  `[n/total] <identifier>` counter: rewritten in place on a terminal, and at most
+  one line every 5 seconds when piped (cron, systemd, `| tee`).
+
+### Changed
+
+- `build_plans` folds its five identical per-candidate exception handlers into
+  one.
+
 ## [0.1.0] - 2026-10-12
 
 First release.

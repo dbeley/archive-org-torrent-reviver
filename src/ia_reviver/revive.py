@@ -115,23 +115,24 @@ def build_plans(
     console = console or Console()
     plans: list[TorrentPlan] = []
     failures: list[tuple[Candidate, str]] = []
-    for candidate in candidates:
+
+    def failed(candidate: Candidate, reason: str) -> None:
+        failures.append((candidate, reason))
+        console.progress_done()
+        console.warn(f"{candidate.identifier}: {reason}")
+
+    total = len(candidates)
+    for index, candidate in enumerate(candidates, start=1):
+        # Each candidate costs at least one archive.org round-trip, so show the
+        # counter: over dozens of torrents this phase runs for minutes.
+        console.progress(index, total, candidate.identifier)
         try:
             plan = build_plan(client, archive, candidate.torrent, verify=verify, force=force)
-        except ItemUnavailable as exc:
-            failures.append((candidate, str(exc)))
-            console.warn(f"{candidate.identifier}: {exc}")
-        except ItemNotFound as exc:
-            failures.append((candidate, str(exc)))
-            console.warn(f"{candidate.identifier}: {exc}")
-        except PlanError as exc:
-            failures.append((candidate, str(exc)))
-            console.warn(f"{candidate.identifier}: {exc}")
-        except (ArchiveOrgError, QbitError) as exc:
-            failures.append((candidate, str(exc)))
-            console.warn(f"{candidate.identifier}: {exc}")
+        except (ItemUnavailable, ItemNotFound, PlanError, ArchiveOrgError, QbitError) as exc:
+            failed(candidate, str(exc))
         else:
             plans.append(plan)
+    console.progress_done()
     return plans, failures
 
 
