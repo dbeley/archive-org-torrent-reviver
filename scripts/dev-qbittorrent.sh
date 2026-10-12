@@ -95,7 +95,7 @@ start() {
   done
   echo "qBittorrent listening on http://127.0.0.1:$PORT (user: $USERNAME)"
   echo "  profile:   $PROFILE"
-  echo "  downloads: $PROFILE/downloads"
+  echo "  downloads: $PROFILE/qBittorrent/downloads"
   echo "  config:    $PROFILE/ia-reviver.toml (written by this script)"
   cat >"$PROFILE/ia-reviver.toml" <<CONF
 qb_url = "http://127.0.0.1:$PORT"

@@ -287,6 +287,24 @@ class EndToEndTest(unittest.TestCase):
         self.assertTrue(records[0]["completed"])
         self.assertEqual(records[0]["after"], 1.0)
 
+    def test_stopped_torrent_is_not_reported_as_seeding(self):
+        # Added paused, and left paused: complete, but reaching nobody.
+        self.qbt.torrents[self.torrent.info_hash]["state"] = "stoppedDL"
+
+        outcome = self.revive()
+
+        self.assertTrue(outcome.ok)
+        self.assertTrue(outcome.completed)
+        self.assertFalse(outcome.seeding)
+        self.assertIn("complete but stopped", outcome.summary)
+
+    def test_running_torrent_is_reported_as_seeding(self):
+        outcome = self.revive()
+
+        self.assertTrue(outcome.ok)
+        self.assertTrue(outcome.seeding)
+        self.assertIn("seeding", outcome.summary)
+
     def test_lock_is_exclusive_then_released(self):
         def acquire_again():
             with torrent_lock(self.state_dir, "abc"):

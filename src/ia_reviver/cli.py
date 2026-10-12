@@ -576,13 +576,18 @@ def cmd_revive(namespace: argparse.Namespace) -> int:
     write_state(config.state_path, outcomes)
 
     console.blank()
+    console.section("summary")
     revived = [o for o in outcomes if o.ok]
+    seeding = [o for o in revived if o.seeding]
+    held_back = [o for o in revived if not o.seeding]
     partial = [o for o in outcomes if not o.ok and not o.error]
     errored = [o for o in outcomes if o.error]
-    console.section("summary")
-    console.info(
-        f"  {len(revived)} revived and seeding, {len(partial)} partial, {len(errored)} failed"
-    )
+    counts = [f"{len(seeding)} revived and seeding"]
+    if held_back:
+        counts.append(f"{len(held_back)} revived but stopped (start to seed)")
+    counts.append(f"{len(partial)} partial")
+    counts.append(f"{len(errored)} failed")
+    console.info("  " + ", ".join(counts))
     console.info(
         f"  {human_bytes(sum(o.fetched_bytes for o in outcomes))} downloaded to archive.org's swarm"
     )

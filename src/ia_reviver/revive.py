@@ -220,6 +220,17 @@ class ReviveOutcome:
         return self.completed and not self.error
 
     @property
+    def seeding(self) -> bool:
+        """Complete *and* the client is actually serving it.
+
+        A torrent left stopped is complete but reaches nobody, so counts must not
+        be built on ``ok`` alone — that would report a paused torrent as seeding.
+        """
+        if not self.ok:
+            return False
+        return self.state_after not in {"", "stoppedUP", "pausedUP"}
+
+    @property
     def summary(self) -> str:
         if self.error:
             return f"failed: {self.error}"
