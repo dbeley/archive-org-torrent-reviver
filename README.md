@@ -1,5 +1,9 @@
 # ia-reviver
 
+[![CI](https://github.com/dbeley/archive-org-torrent-reviver/actions/workflows/ci.yml/badge.svg)](https://github.com/dbeley/archive-org-torrent-reviver/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+
 Populate **unseeded archive.org torrents from archive.org itself**, then let
 qBittorrent verify the data and become the seed that swarm no longer had.
 
@@ -53,25 +57,16 @@ client says after the recheck.
 
 ### NixOS and any Nix system
 
-The repository is **private**, so `github:` fetching needs credentials. Pick one:
-
 ```console
-# 1. Give Nix a token; `github:` URLs then work everywhere, for any repo.
-#    ~/.config/nix/nix.conf:
-#      access-tokens = github.com=<token with read access>
 $ nix run github:dbeley/archive-org-torrent-reviver -- --help
-
-# 2. Or go over SSH (no nix.conf change):
-$ nix run git+ssh://git@github.com/dbeley/archive-org-torrent-reviver -- scan
-
-# 3. Or clone and run locally:
-$ git clone git@github.com:dbeley/archive-org-torrent-reviver && cd archive-org-torrent-reviver
-$ nix run . -- scan
+$ nix run github:dbeley/archive-org-torrent-reviver -- scan
 ```
 
 From a checkout you also get:
 
 ```console
+$ git clone https://github.com/dbeley/archive-org-torrent-reviver
+$ cd archive-org-torrent-reviver
 $ nix build . && ./result/bin/ia-reviver scan
 $ nix develop            # dev shell: python, pytest, ruff, qbittorrent-nox
 ```
@@ -196,7 +191,7 @@ process table.
 ## Using it on a NixOS torrent host
 
 The flake is deliberately just enough to *run* the tool — no NixOS module is
-imposed. On a host like `nixos-kimsufi-qbittorrent`:
+imposed. On a host running `services.qbittorrent`:
 
 ```console
 # one-off, from the repo
@@ -279,7 +274,7 @@ Things it does on purpose:
 
 ```console
 $ nix develop
-$ python3 -m unittest discover -s tests -t .   # 125 tests, fully offline
+$ python3 -m unittest discover -s tests -t .   # 127 tests, fully offline
 $ ruff check src tests
 ```
 
@@ -322,6 +317,14 @@ instance is exercised the same way a production one is.
 | `config.py` | defaults / file / env / flag resolution |
 | `progress.py`, `util.py` | output and helpers |
 | `cli.py` | `scan`, `revive`, `check` |
+
+## Contributing and security
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — setup, and the ground rules (no
+  dependencies, tests stay offline, success is reported by qBittorrent).
+- [SECURITY.md](SECURITY.md) — how to report a vulnerability, and the trust
+  boundary: torrent contents are untrusted input.
+- [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 

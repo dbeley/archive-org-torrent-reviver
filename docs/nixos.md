@@ -1,7 +1,7 @@
 # Running ia-reviver on a NixOS qBittorrent host
 
 This walks through wiring ia-reviver onto a host managed by
-`services.qbittorrent` — the `nixos-kimsufi-qbittorrent` pattern: qBittorrent
+`services.qbittorrent` — the standard setup: qBittorrent
 running as a systemd service, a WebUI on localhost, a big `save_path` on disk.
 
 The flake deliberately ships no NixOS module. What follows is configuration you
@@ -82,27 +82,17 @@ the group matches too (`Group = "users"` in the example host).
 
 ## 4. A one-shot service and a nightly timer
 
-Add the flake as an input. It is a **private** repository, so Nix needs a token
-for `github:` URLs — put this in the *builder's* `nix.conf` (e.g.
-`nix.settings.access-tokens` on NixOS), or use an SSH URL instead:
+Add the flake as an input:
 
 ```nix
 # flake.nix of your nixos-config
 inputs.ia-reviver.url = "github:dbeley/archive-org-torrent-reviver";
-# or, without a token:
-# inputs.ia-reviver.url = "git+ssh://git@github.com/dbeley/archive-org-torrent-reviver";
-```
-
-On NixOS the token goes in the system config, where it is meant to live:
-
-```nix
-nix.settings.access-tokens = [ "github.com=…" ];  # or use a secrets-managed file
 ```
 
 Then pass the flake down to the host module:
 
 ```nix
-# hosts/nixos-kimsufi-qbittorrent/default.nix
+# hosts/qbittorrent-host/default.nix
 {
   config,
   inputs,
