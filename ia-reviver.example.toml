@@ -1,0 +1,66 @@
+# Example configuration for ia-reviver.
+#
+# Copy to one of:
+#   ./ia-reviver.toml
+#   ~/.config/ia-reviver/config.toml
+#   /etc/ia-reviver/config.toml
+# or pass it explicitly with `--config <path>`.
+#
+# Precedence, lowest to highest: defaults, this file, IA_REVIVER_* environment
+# variables, command-line flags.
+#
+# Flat keys and sections are equivalent — [qbittorrent] url = "..." means the
+# same as qb_url = "...". Both styles are shown below.
+
+# --- qBittorrent WebUI -------------------------------------------------------
+
+qb_url = "http://127.0.0.1:8080"
+
+# [qbittorrent]
+# url = "http://127.0.0.1:8080"
+username = "admin"
+
+# Prefer a file over an inline password: a value on the command line ends up in
+# the process table, and an inline value ends up in this file's history.
+# Works with systemd credentials and sops-nix, e.g.
+#   /run/secrets/qbittorrent_password
+#   /run/credentials/ia-reviver.service/qbittorrent_password
+# password_file = "/run/secrets/qbittorrent_password"
+
+# Or inline (less safe):
+# password = "changeme"
+
+# Set to false only for a WebUI with a self-signed certificate.
+verify_tls = true
+
+# [archive]
+# base_url = "https://archive.org"
+
+# --- fetching ---------------------------------------------------------------
+
+# [fetching]
+# Parallel file downloads. archive.org is a donation-funded non-profit: 3 is a
+# polite default. Raise it only if you know what you are doing.
+jobs = 3
+
+# Aggregate download ceiling, e.g. "8M", "1.5G". Unset means unlimited.
+# limit_rate = "8M"
+
+# MD5-check files that already exist on disk. Turning this off makes re-runs
+# much faster on very large items, at the cost of trusting file size alone.
+verify = true
+
+# Attempts per file before giving up (transient 5xx and dropped connections).
+download_retries = 3
+
+# Start torrents again after a successful recheck. A torrent that was paused
+# before the run is left stopped unless you pass --start.
+resume_after = true
+
+# --- behaviour --------------------------------------------------------------
+
+# Seconds to wait for qBittorrent to finish hashing after a recheck.
+recheck_timeout = 900
+
+# Where locks and the run history (history/revived.jsonl) live.
+state_dir = "~/.local/state/ia-reviver"

@@ -1,0 +1,317 @@
+{
+ "alternate_locations": {
+  "servers": [
+   {
+    "dir": "/0/items/ramrakshastotram",
+    "server": "dn790008.ca.archive.org"
+   }
+  ],
+  "workable": [
+   {
+    "dir": "/0/items/ramrakshastotram",
+    "server": "dn790008.ca.archive.org"
+   }
+  ]
+ },
+ "created": 1791582642,
+ "d1": "ia600704.us.archive.org",
+ "d2": "ia800704.us.archive.org",
+ "dir": "/26/items/ramrakshastotram",
+ "files": [
+  {
+   "crc32": "f3bad846",
+   "format": "EPUB",
+   "hocr_epub_hocr_version": "1.1.66",
+   "hocr_epub_module_version": "0.0.1",
+   "md5": "06f300191d057fbb781e84d5b8be98f1",
+   "mtime": "1754540220",
+   "name": "231_Ramraksha_Stotram_Web.epub",
+   "original": "231_Ramraksha_Stotram_Web_hocr.html",
+   "sha1": "df3d79caae031706c8d51db169fe2cdc897c5120",
+   "size": "4051612",
+   "source": "derivative"
+  },
+  {
+   "crc32": "8f64c246",
+   "format": "Text PDF",
+   "md5": "57ded120ecc911fb61577aa8e15ed59c",
+   "mtime": "1586358571",
+   "name": "231_Ramraksha_Stotram_Web.pdf",
+   "sha1": "94232219da97d78d906dff6407008a70e3208bdc",
+   "size": "471932",
+   "source": "original"
+  },
+  {
+   "crc32": "b0ea692c",
+   "format": "chOCR",
+   "md5": "eff7b8960290216714e752c8a2bb78d6",
+   "mtime": "1747051812",
+   "name": "231_Ramraksha_Stotram_Web_chocr.html.gz",
+   "ocr": "tesseract 5.3.0-6-g76ae",
+   "ocr_detected_lang": "hi",
+   "ocr_detected_lang_conf": "1.0000",
+   "ocr_detected_script": "Devanagari",
+   "ocr_detected_script_conf": "0.9403",
+   "ocr_module_version": "0.0.21",
+   "ocr_parameters": "lang-hin;two-pass-disabled;pass-dpi-disabled;autonomous-mode-disabled;binarisation-method-otsu",
+   "original": "231_Ramraksha_Stotram_Web_jp2.zip",
+   "sha1": "190e08e0755cb26d791a50dd553ddcf63332933d",
+   "size": "173594",
+   "source": "derivative"
+  },
+  {
+   "crc32": "63584f19",
+   "filecount": "9",
+   "format": "Daisy",
+   "hocr_epub_hocr_version": "1.1.66",
+   "hocr_epub_module_version": "0.0.1",
+   "md5": "dd7be201d9c9e8d4ba4f579072a47895",
+   "mtime": "1767198224",
+   "name": "231_Ramraksha_Stotram_Web_daisy.zip",
+   "original": "231_Ramraksha_Stotram_Web_hocr.html",
+   "sha1": "f2e9654fdb9db323c45c31f9dec1e6be35cb35bf",
+   "size": "42764",
+   "source": "derivative"
+  },
+  {
+   "crc32": "b9d8f99b",
+   "format": "DjVuTXT",
+   "md5": "e7ddb77b90ef33fbf12f8b1ad333400b",
+   "mtime": "1747054051",
+   "name": "231_Ramraksha_Stotram_Web_djvu.txt",
+   "original": "231_Ramraksha_Stotram_Web_djvu.xml",
+   "sha1": "0aa8deecbb81a27301e6bc76a356110a50c9f013",
+   "size": "32776",
+   "source": "derivative"
+  },
+  {
+   "crc32": "0bf4fcf9",
+   "format": "Djvu XML",
+   "md5": "1083c7a29e32a2e056f934fe4fcff772",
+   "mtime": "1747053121",
+   "name": "231_Ramraksha_Stotram_Web_djvu.xml",
+   "original": "231_Ramraksha_Stotram_Web_hocr.html",
+   "sha1": "bf4747b02d0800ff656865acc7d5a96e7ce02ba8",
+   "size": "171865",
+   "source": "derivative"
+  },
+  {
+   "crc32": "7740b106",
+   "format": "hOCR",
+   "hocr_char_to_word_hocr_version": "1.1.56",
+   "hocr_char_to_word_module_version": "1.3.0",
+   "md5": "05d0734e77a5a41906ffbdd2d0ccf258",
+   "mtime": "1747052700",
+   "name": "231_Ramraksha_Stotram_Web_hocr.html",
+   "ocr_detected_lang": "hi",
+   "ocr_detected_lang_conf": "1.0000",
+   "ocr_detected_script": "Devanagari",
+   "ocr_detected_script_conf": "0.9403",
+   "ocr_module_version": "0.0.21",
+   "ocr_parameters": "lang-hin;two-pass-disabled;pass-dpi-disabled;autonomous-mode-disabled;binarisation-method-otsu",
+   "original": "231_Ramraksha_Stotram_Web_chocr.html.gz",
+   "sha1": "486c9ab68e729f64efc32aa3af9499f6eb75cba9",
+   "size": "299847",
+   "source": "derivative"
+  },
+  {
+   "crc32": "3094cef6",
+   "format": "OCR Page Index",
+   "hocr_pageindex_hocr_version": "1.1.56",
+   "hocr_pageindex_module_version": "1.1.0",
+   "md5": "116ee0c653b5725d1ae001aea13c2ae9",
+   "mtime": "1747053446",
+   "name": "231_Ramraksha_Stotram_Web_hocr_pageindex.json.gz",
+   "original": "231_Ramraksha_Stotram_Web_hocr.html",
+   "sha1": "539c40a375e0ffeeb1a2aeed53a638eb36efc8e3",
+   "size": "363",
+   "source": "derivative"
+  },
+  {
+   "crc32": "f55cb14b",
+   "format": "OCR Search Text",
+   "hocr_fts_text_hocr_version": "1.1.56",
+   "hocr_fts_text_module_version": "1.2.0",
+   "md5": "1f1a2af869b3b7e4ca20ad834053dc64",
+   "mtime": "1747053890",
+   "name": "231_Ramraksha_Stotram_Web_hocr_searchtext.txt.gz",
+   "original": "231_Ramraksha_Stotram_Web_hocr.html",
+   "sha1": "c31cc555caf7548cfa85c8ad7b63d4939e7058b7",
+   "size": "7307",
+   "source": "derivative",
+   "word_conf_0_10": "22",
+   "word_conf_11_20": "14",
+   "word_conf_21_30": "32",
+   "word_conf_31_40": "36",
+   "word_conf_41_50": "56",
+   "word_conf_51_60": "58",
+   "word_conf_61_70": "91",
+   "word_conf_71_80": "100",
+   "word_conf_81_90": "425",
+   "word_conf_91_100": "776"
+  },
+  {
+   "crc32": "116733c4",
+   "filecount": "33",
+   "format": "Single Page Processed JP2 ZIP",
+   "md5": "b39906ce4784181ca7a1c7a0f99c65a5",
+   "mtime": "1586359134",
+   "name": "231_Ramraksha_Stotram_Web_jp2.zip",
+   "original": "231_Ramraksha_Stotram_Web.pdf",
+   "sha1": "f37db2de27b38de71059a34c3c7708a50b0db664",
+   "size": "3932494",
+   "source": "derivative"
+  },
+  {
+   "crc32": "96e67036",
+   "format": "LCP Encrypted EPUB",
+   "md5": "06829f8400c94fa60ba0f285dbc5f8b0",
+   "mtime": "1754540243",
+   "name": "231_Ramraksha_Stotram_Web_lcp.epub",
+   "original": "231_Ramraksha_Stotram_Web.epub",
+   "sha1": "4f17db62718fd4625390a9e43b44ea4f054157eb",
+   "size": "4629710",
+   "source": "derivative"
+  },
+  {
+   "crc32": "286dca15",
+   "format": "Page Numbers JSON",
+   "hocr_pagenumber_confidence": "98",
+   "hocr_pagenumber_hocr_version": "1.1.54",
+   "hocr_pagenumber_module_version": "1.0.5",
+   "md5": "ddef8d038d0593889f0de4b2b0cc12c8",
+   "mtime": "1747054534",
+   "name": "231_Ramraksha_Stotram_Web_page_numbers.json",
+   "original": "231_Ramraksha_Stotram_Web_hocr.html",
+   "sha1": "1b7ffacb239e8654131eb34fe4641514ed292077",
+   "size": "5802",
+   "source": "derivative"
+  },
+  {
+   "crc32": "c81e0c43",
+   "format": "Scandata",
+   "md5": "91cd913909583c58f757b4865dbe792a",
+   "mtime": "1747054535",
+   "name": "231_Ramraksha_Stotram_Web_scandata.xml",
+   "original": "231_Ramraksha_Stotram_Web_djvu.xml",
+   "sha1": "b1286128bdb85df4bfbba7a31da0d6c7c21ca035",
+   "size": "11172",
+   "source": "derivative"
+  },
+  {
+   "crc32": "40df157c",
+   "format": "Item Tile",
+   "md5": "b31a02b18d04259575e4e641a248cab1",
+   "mtime": "1681502276",
+   "name": "__ia_thumb.jpg",
+   "rotation": "0",
+   "sha1": "cc7820045f51a5dc076d3a6abda9131d709f7148",
+   "size": "11280",
+   "source": "original"
+  },
+  {
+   "btih": "d9a84f76bd0be498d7ac3764d7bde16a632855a7",
+   "crc32": "09fe9840",
+   "format": "Archive BitTorrent",
+   "md5": "92741236a745913292ed014d910c8b83",
+   "mtime": "1785351271",
+   "name": "ramrakshastotram_archive.torrent",
+   "sha1": "ca169228c12c26eba897f09ba484680acee5552f",
+   "size": "4693",
+   "source": "metadata"
+  },
+  {
+   "format": "Metadata",
+   "md5": "7dfef517f1fd7ae55dcdf082a00a1fa6",
+   "name": "ramrakshastotram_files.xml",
+   "source": "original",
+   "summation": "md5"
+  },
+  {
+   "crc32": "ca8a96c0",
+   "format": "Metadata",
+   "md5": "249637da178d045334a0772692a235b2",
+   "mtime": "1586358715",
+   "name": "ramrakshastotram_meta.sqlite",
+   "sha1": "c68c42ac9f76e79efad1e1d4f815fa5dabde7b10",
+   "size": "14336",
+   "source": "original"
+  },
+  {
+   "crc32": "082dc73d",
+   "format": "Metadata",
+   "md5": "36799b0bb5a741cbf8d087ffd7500e7f",
+   "mtime": "1767198262",
+   "name": "ramrakshastotram_meta.xml",
+   "sha1": "b0824a55f0de0184814f1b8b203a9b210812779a",
+   "size": "1949",
+   "source": "original"
+  },
+  {
+   "crc32": "6af30073",
+   "format": "Metadata",
+   "md5": "0d5ea0192a208822f4882a5011b4e6c4",
+   "mtime": "1785351267",
+   "name": "ramrakshastotram_reviews.xml",
+   "sha1": "6a134c6a5696ff0daafa6d138ec4c17c71df95a5",
+   "size": "494",
+   "source": "original"
+  }
+ ],
+ "files_count": 19,
+ "item_last_updated": 1785351272,
+ "item_size": 13863990,
+ "metadata": {
+  "addeddate": "2020-04-08 15:11:25",
+  "collection": [
+   "booksbylanguage_hindi",
+   "booksbylanguage"
+  ],
+  "curation": "[curator]validator@archive.org[/curator][date]20200408151744[/date][comment]checked for malware[/comment]",
+  "description": "\u0936\u094d\u0930\u0940\u0930\u093e\u092e\u0930\u0915\u094d\u0937\u093e\u0938\u094d\u0924\u094b\u0924\u094d\u0930\u092e\u094d \u092c\u0941\u0927\u0915\u094c\u0936\u093f\u0915 \u0928\u093e\u092e\u0915 \u090b\u0937\u093f \u0926\u094d\u0935\u093e\u0930\u093e \u092d\u0917\u0935\u093e\u0928 \u0936\u094d\u0930\u0940\u0930\u093e\u092e \u0915\u0940 \u0938\u094d\u0924\u0941\u0924\u093f \u092e\u0947\u0902 \u0930\u091a\u093e \u0917\u092f\u093e \u0938\u094d\u0924\u094b\u0924\u094d\u0930 \u0939\u0948\u0964 Ramraksha Stotram",
+  "external-identifier": "urn:lcp:231_Ramraksha_Stotram_Web:epub:72781e0b-cc1c-4f39-accf-4a3a9d5abd8d",
+  "identifier": "ramrakshastotram",
+  "identifier-access": "http://archive.org/details/ramrakshastotram",
+  "identifier-ark": "ark:/13960/t59d5m94d",
+  "language": "hin",
+  "mediatype": "texts",
+  "ocr": "tesseract 5.3.0-6-g76ae",
+  "ocr_detected_lang": "hi",
+  "ocr_detected_lang_conf": "1.0000",
+  "ocr_detected_script": "Devanagari",
+  "ocr_detected_script_conf": "0.9403",
+  "ocr_module_version": "0.0.21",
+  "ocr_parameters": "-l hin",
+  "page_number_confidence": "98",
+  "page_number_module_version": "1.0.5",
+  "ppi": "300",
+  "publicdate": "2020-04-08 15:11:25",
+  "scanner": "Internet Archive HTML5 Uploader 1.6.4",
+  "subject": [
+   "Hidni",
+   "Sanskrit",
+   "Sanskrit- Hindi",
+   "Religious Text",
+   "Spiritual"
+  ],
+  "title": "\u0936\u094d\u0930\u0940\u0930\u093e\u092e\u0930\u0915\u094d\u0937\u093e\u0938\u094d\u0924\u094b\u0924\u094d\u0930\u092e\u094d (\u0939\u093f\u0902\u0926\u0940 \u0905\u0928\u0941\u0935\u093e\u0926\u0938\u0939\u093f\u0924 ) Ramraksha Stotram",
+  "uploader": "prajapat.ashish009@yahoo.com"
+ },
+ "reviews": [
+  {
+   "createdate": "2026-07-29 18:53:56",
+   "reviewbody": "5",
+   "reviewdate": "2026-07-29 18:53:56",
+   "reviewer": "manoj jepal",
+   "reviewer_itemname": "@manoj_jepal",
+   "reviewtitle": "Ram raza stotram",
+   "stars": "5"
+  }
+ ],
+ "server": "ia600704.us.archive.org",
+ "uniq": 1769235098,
+ "workable_servers": [
+  "ia600704.us.archive.org",
+  "ia800704.us.archive.org"
+ ]
+}

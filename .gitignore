@@ -1,0 +1,32 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Nix ---
+result
+result-*
+.direnv/
+
+# --- Local state ---
+.env
+.env.local
+# Partially downloaded archive.org files, if you point the tool at a scratch dir
+*.ia-reviver-part
+# Throwaway qBittorrent instance created by scripts/dev-qbittorrent.sh
+.dev-qbittorrent/
+
+# --- Editor & OS ---
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
