@@ -53,17 +53,25 @@ client says after the recheck.
 
 ### NixOS and any Nix system
 
-Run it straight from the repository — no clone, no venv:
+The repository is **private**, so `github:` fetching needs credentials. Pick one:
 
 ```console
+# 1. Give Nix a token; `github:` URLs then work everywhere, for any repo.
+#    ~/.config/nix/nix.conf:
+#      access-tokens = github.com=<token with read access>
 $ nix run github:dbeley/archive-org-torrent-reviver -- --help
-$ nix run github:dbeley/archive-org-torrent-reviver -- scan
+
+# 2. Or go over SSH (no nix.conf change):
+$ nix run git+ssh://git@github.com/dbeley/archive-org-torrent-reviver -- scan
+
+# 3. Or clone and run locally:
+$ git clone git@github.com:dbeley/archive-org-torrent-reviver && cd archive-org-torrent-reviver
+$ nix run . -- scan
 ```
 
-Or from a checkout:
+From a checkout you also get:
 
 ```console
-$ nix run . -- scan
 $ nix build . && ./result/bin/ia-reviver scan
 $ nix develop            # dev shell: python, pytest, ruff, qbittorrent-nox
 ```
