@@ -178,6 +178,14 @@ Two notes on that config:
 - `--limit-rate 20M` on a long-running box is a deliberate throttle. archive.org
   is donation-funded; the nightly job should not saturate the uplink.
 
+> **The hardening block is a starting point, not a tested configuration.** The
+> sandboxing options mirror the ones the qBittorrent unit itself uses, and
+> ia-reviver is pure-stdlib Python doing HTTPS, so nothing there should be
+> required at runtime — but this exact combination has not been run on a NixOS
+> host. If the unit fails with an opaque error, drop the hardening lines first
+> and re-add them one at a time. (`systemd-analyze security ia-reviver.service`
+> is the quick check.)
+
 `/var/lib/ia-reviver` needs to exist and be writable by that user:
 
 ```nix
