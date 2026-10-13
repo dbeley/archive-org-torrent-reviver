@@ -56,8 +56,8 @@ WebUI\\Address=127.0.0.1
 WebUI\\Port=$PORT
 WebUI\\Username=$USERNAME
 WebUI\\Password_PBKDF2="$hash"
-WebUI\\CSRFProtection=false
-WebUI\\HostHeaderValidation=false
+WebUI\\CSRFProtection=true
+WebUI\\HostHeaderValidation=true
 WebUI\\LocalHostAuth=true
 WebUI\\AuthSubnetWhitelistEnabled=false
 

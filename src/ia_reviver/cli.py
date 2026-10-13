@@ -440,6 +440,13 @@ def cmd_check(namespace: argparse.Namespace) -> int:
         console.error(f"qBittorrent: {exc}")
         return EXIT_ERROR
 
+    try:
+        client.verify_post_access()
+        console.ok("writes are authorised (pause/recheck/start will work)")
+    except QbitError as exc:
+        console.error(f"qBittorrent refuses write requests: {exc}")
+        failures += 1
+
     preferences = client.preferences()
     if preferences.get("save_path"):
         console.info(f"  default save path: {preferences['save_path']}")
@@ -505,6 +512,19 @@ def cmd_revive(namespace: argparse.Namespace) -> int:
             console.ok("every archive.org torrent in qBittorrent is already complete.")
             return EXIT_OK
         console.info(f"no target given: considering all {len(todo)} torrent(s) that need data")
+
+    # Prove writes are authorised before spending minutes talking to archive.org.
+    # A WebUI can serve every GET and refuse every POST; discovering that after
+    # planning 65 torrents wastes the whole run.
+    try:
+        client.verify_post_access()
+    except QbitError as exc:
+        console.error(
+            "cannot start: qBittorrent refuses state-changing requests, so no torrent "
+            "could be paused, rechecked or restarted."
+        )
+        console.error(f"  {exc}")
+        return EXIT_ERROR
 
     console.section(f"planning {len(selected)} torrent(s)")
     plans, failures = build_plans(

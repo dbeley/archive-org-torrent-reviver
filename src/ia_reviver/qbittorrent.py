@@ -27,8 +27,10 @@ from typing import Any
 
 __all__ = [
     "QbitError",
+    "QbitHttpError",
     "QbitAuthError",
     "QbitBannedError",
+    "QbitForbiddenError",
     "QbitNotFound",
     "Torrent",
     "QbitClient",
@@ -66,12 +68,34 @@ class QbitError(RuntimeError):
     """Any failure talking to the qBittorrent WebUI."""
 
 
+class QbitHttpError(QbitError):
+    """A non-2xx HTTP response, carrying the status code.
+
+    The code matters: ``stop``/``start`` may only fall back to their pre-5.x
+    names on a 404, never on an authentication or permission failure.
+    """
+
+    def __init__(self, message: str, code: int = 403) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 class QbitAuthError(QbitError):
     """Bad credentials."""
 
 
-class QbitBannedError(QbitError):
+class QbitBannedError(QbitHttpError):
     """The WebUI banned this client IP after too many failed logins."""
+
+
+class QbitForbiddenError(QbitHttpError):
+    """403 on a request — the WebUI did not accept it as authenticated.
+
+    qBittorrent's WebUI raises a bare ``403 Forbidden`` from exactly one place:
+    a request for a *private* API endpoint that arrives with no valid session.
+    Reads can still succeed, so this is the failure that looks like "scan works,
+    revive does not".
+    """
 
 
 class QbitNotFound(QbitError):
@@ -252,12 +276,13 @@ class QbitClient:
         if params:
             url = f"{url}?{urllib.parse.urlencode(params)}"
         data = urllib.parse.urlencode(form).encode() if form is not None else None
-        headers = {
-            # qBittorrent rejects requests without a matching Referer/Origin when
-            # CSRF protection is on.
-            "Referer": self.url + "/",
-            "Origin": self.url,
-        }
+        # Deliberately no Referer/Origin. qBittorrent runs its CSRF check *only*
+        # when one of them is present, and compares it against the request's Host
+        # header — a mismatch is refused outright. Its own source says omitting
+        # both is allowed on purpose "so [that] Web API users [don't] spoof
+        # headers". Sending neither is therefore both simpler and strictly more
+        # robust than trying to guess a value that matches.
+        headers: dict[str, str] = {}
         if data is not None:
             headers["Content-Type"] = "application/x-www-form-urlencoded"
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
@@ -275,7 +300,17 @@ class QbitClient:
                     "qBittorrent banned this IP after repeated failed logins. "
                     f"Wait for the ban to expire or clear it in the WebUI. ({text})"
                 ) from exc
-            raise QbitError(f"HTTP {exc.code} on {method} {path}: {text or '<empty>'}") from exc
+            if exc.code == 403:
+                raise QbitForbiddenError(
+                    f"HTTP 403 on {method} {path}: qBittorrent refused the request. "
+                    "Its WebUI answers a bare 403 when a request for a private API "
+                    "endpoint carries no valid session, so reads (scan, planning) can "
+                    "succeed while every write is refused. Check the WebUI log, and "
+                    "run 'ia-reviver check -v' to see what it reports about the session."
+                ) from exc
+            raise QbitHttpError(
+                f"HTTP {exc.code} on {method} {path}: {text or '<empty>'}", exc.code
+            ) from exc
         except (urllib.error.URLError, TimeoutError, ssl.SSLError) as exc:
             raise QbitError(f"cannot reach qBittorrent at {self.url}: {exc}") from exc
 
@@ -417,21 +452,50 @@ class QbitClient:
         """Force a recheck. This is what turns fetched files into "seeding"."""
         self._post_hashes("/api/v2/torrents/recheck", hashes)
 
+    def _post_first_available(self, paths: tuple[str, ...], hashes: Iterable[str]) -> None:
+        """POST to the first of ``paths`` this WebUI knows.
+
+        Only a **404** justifies trying the next name. Falling back on any error
+        would retry the other spelling after an authentication or permission
+        failure that no rename can fix, and would report the *fallback*
+        endpoint's error instead of the real one.
+        """
+        last: QbitHttpError | None = None
+        for path in paths:
+            try:
+                self._post_hashes(path, hashes)
+                return
+            except QbitHttpError as exc:
+                if exc.code != 404:
+                    raise
+                last = exc
+        raise QbitError(
+            f"none of {' or '.join(paths)} exist on this qBittorrent "
+            f"(HTTP 404 on each); the WebUI API may have changed ({last})"
+        )
+
     def stop(self, hashes: Iterable[str]) -> None:
         """Pause torrents (``stop`` on 5.x, ``pause`` before that)."""
-        hash_list = list(hashes)
-        try:
-            self._post_hashes("/api/v2/torrents/stop", hash_list)
-        except QbitError:
-            self._post_hashes("/api/v2/torrents/pause", hash_list)
+        self._post_first_available(
+            ("/api/v2/torrents/stop", "/api/v2/torrents/pause"), list(hashes)
+        )
 
     def start(self, hashes: Iterable[str]) -> None:
         """Resume torrents (``start`` on 5.x, ``resume`` before that)."""
-        hash_list = list(hashes)
-        try:
-            self._post_hashes("/api/v2/torrents/start", hash_list)
-        except QbitError:
-            self._post_hashes("/api/v2/torrents/resume", hash_list)
+        self._post_first_available(
+            ("/api/v2/torrents/start", "/api/v2/torrents/resume"), list(hashes)
+        )
+
+    def verify_post_access(self) -> None:
+        """Prove that state-changing requests are authorised, changing nothing.
+
+        Reading uses GETs, which a WebUI can serve happily while refusing every
+        POST. Without this, a large library gets planned, the first pause fails,
+        and the run discovers that nothing was ever going to work. Targets a hash
+        that cannot exist, so it is a no-op even when it succeeds.
+        """
+        self._ensure_session()
+        self.stop(["0" * 40])
 
     def reannounce(self, hashes: Iterable[str]) -> None:
         self._post_hashes("/api/v2/torrents/reannounce", hashes)

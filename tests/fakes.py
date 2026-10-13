@@ -290,6 +290,12 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         if not self._authed():
             self._empty(403)
             return
+        if self.server.refuse_writes:
+            # Reproduces the reported symptom: every read succeeds and the WebUI
+            # refuses the write. qBittorrent answers a bare 403 when a private
+            # API request arrives without a session it will accept.
+            self._empty(403)
+            return
         handler = self.server.post_routes.get(parsed.path)
         if handler is None:
             self._empty(404)
@@ -313,6 +319,7 @@ class FakeQbitServer:
         final_progress: float = 1.0,
         support_stop: bool = True,
         legacy_pause_names: bool = False,
+        refuse_writes: bool = False,
     ) -> None:
         self.torrents = {t["hash"]: t for t in (torrents or [qbt_torrent()])}
         self.files = files if files is not None else {next(iter(self.torrents)): []}
@@ -323,6 +330,7 @@ class FakeQbitServer:
         self.final_state = final_state
         self.final_progress = final_progress
         self.support_stop = support_stop
+        self.refuse_writes = refuse_writes
         self.calls: list[tuple[str, str]] = []
         self.rechecked: list[str] = []
         self.started: list[str] = []
@@ -360,6 +368,7 @@ class FakeQbitServer:
         self._server.username = username  # type: ignore[attr-defined]
         self._server.password = password  # type: ignore[attr-defined]
         self._server.banned = False  # type: ignore[attr-defined]
+        self._server.refuse_writes = refuse_writes  # type: ignore[attr-defined]
         self._server.session_cookie_name = "QBT_SID_test"  # type: ignore[attr-defined]
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
 

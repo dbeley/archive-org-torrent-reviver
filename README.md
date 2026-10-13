@@ -253,6 +253,35 @@ Things it does on purpose:
 - **Is resumable and idempotent.** Interrupt it and re-run: partial files resume
   with an HTTP `Range`, complete files are skipped.
 
+## Troubleshooting
+
+**`scan` works but `revive` fails with `HTTP 403 ... Forbidden`.**
+
+qBittorrent answers a bare 403 when a request for a *private* API endpoint
+arrives without a session it accepts, and that check runs before the URL is
+routed — so reads can succeed while every write is refused, and even a
+non-existent endpoint answers 403 rather than 404. Run `ia-reviver check -v`: it
+now exercises a write up front and will tell you whether writes are authorised.
+Then look at what the WebUI itself logged:
+
+```console
+$ journalctl -u qbittorrent --since "-15 min" \
+    | grep -iE "csrf|origin|referer|host header|unauthor|forbidden"
+```
+
+Usual causes, in order of likelihood:
+
+- the tool reaches the WebUI on a different host/port than the one you gave it
+  (`qb_url`), e.g. through a reverse proxy or an SSH tunnel, so the request the
+  WebUI sees does not match what it expects;
+- `HostHeaderValidation` is enabled and the `Host` you connect with is not one
+  the WebUI recognises;
+- the session cookie is not surviving the trip (an authenticating proxy that
+  strips it).
+
+Note that `revive` now checks writes *before* planning, so this fails in seconds
+rather than after planning an entire library.
+
 ## Limits and caveats
 
 - **Only fills torrents you already have in qBittorrent.** Adding torrents from

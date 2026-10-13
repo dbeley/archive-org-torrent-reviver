@@ -9,6 +9,7 @@ from ia_reviver.qbittorrent import (
     QbitBannedError,
     QbitClient,
     QbitError,
+    QbitForbiddenError,
     QbitNotFound,
     Torrent,
 )
@@ -159,6 +160,70 @@ class QbitClientTest(unittest.TestCase):
         self.client.login()
         torrents = self.client.then_check([HASH], timeout=15, poll=0.05)
         self.assertAlmostEqual(torrents[HASH].progress, 0.42)
+
+
+class WriteRefusedTest(unittest.TestCase):
+    """A WebUI that serves every read and refuses every write.
+
+    This is the reported symptom: ``scan`` works, ``revive`` then fails on the
+    first pause, and — because ``stop`` used to retry the pre-5.x name on *any*
+    error — the message named ``/torrents/pause`` even though ``/torrents/stop``
+    had been refused first.
+    """
+
+    def setUp(self):
+        self.server = FakeQbitServer(refuse_writes=True).start()
+        self.addCleanup(self.server.stop)
+        self.client = QbitClient(self.server.url, username="admin", password="secret")
+        self.client.login()
+
+    def test_reads_still_succeed(self):
+        self.assertEqual(len(self.client.torrents()), 1)
+
+    def test_stop_names_the_endpoint_that_actually_failed(self):
+        with self.assertRaises(QbitForbiddenError) as ctx:
+            self.client.stop([HASH])
+        message = str(ctx.exception)
+        self.assertIn("/api/v2/torrents/stop", message)
+        self.assertNotIn("pause", message)
+        self.assertEqual(ctx.exception.code, 403)
+
+    def test_the_failure_says_what_a_403_means(self):
+        with self.assertRaises(QbitForbiddenError) as ctx:
+            self.client.stop([HASH])
+        self.assertIn("private API", str(ctx.exception))
+
+    def test_verify_post_access_fails_fast_and_touches_nothing(self):
+        with self.assertRaises(QbitForbiddenError):
+            self.client.verify_post_access()
+        self.assertEqual(self.server.stopped, [])
+
+    def test_verify_post_access_passes_and_touches_nothing_when_writes_work(self):
+        healthy = FakeQbitServer().start()
+        self.addCleanup(healthy.stop)
+        client = QbitClient(healthy.url, username="admin", password="secret")
+        client.login()
+
+        client.verify_post_access()
+
+        # It deliberately targets a hash that cannot exist, so a healthy WebUI
+        # sees a no-op rather than a real torrent being paused.
+        self.assertNotIn(HASH, healthy.stopped)
+
+
+class MissingEndpointTest(unittest.TestCase):
+    def test_absent_under_both_names_is_reported_clearly(self):
+        server = FakeQbitServer(support_stop=False).start()
+        self.addCleanup(server.stop)
+        client = QbitClient(server.url, username="admin", password="secret")
+        client.login()
+
+        with self.assertRaises(QbitError) as ctx:
+            client.stop([HASH])
+
+        message = str(ctx.exception)
+        self.assertIn("stop", message)
+        self.assertIn("pause", message)
 
 
 class QbitErrorTest(unittest.TestCase):

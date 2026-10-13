@@ -8,6 +8,19 @@ Notable changes to `ia-reviver`. Format follows
 
 ### Fixed
 
+- **A refused write no longer gets reported against the wrong endpoint.** A 403
+  ("Forbidden") from qBittorrent means the WebUI did not accept the request as
+  authenticated, and its check runs *before* the URL is routed — so every
+  private endpoint answers 403, including ones that do not exist. `stop`/`start`
+  used to retry their pre-5.x names on *any* error, so a rejected `/torrents/stop`
+  was retried as `/torrents/pause` and the message named `pause` — an endpoint
+  that may not even exist on 5.x. The fallback now happens only on **404**, and a
+  403 is reported with the endpoint that really failed and what a 403 means.
+- **`revive` refuses to start when writes are refused**, instead of planning a
+  whole library and then failing on every torrent. The check runs before the
+  first archive.org request.
+- **`check` now verifies writes, not just reads**, so this class of failure is
+  caught by the command whose job is to catch it.
 - **Planning no longer looks like a hang.** Building the plan costs at least one
   archive.org round-trip per torrent, and the phase printed nothing until every
   torrent had been planned — so a library of dozens of dead torrents sat silent
@@ -17,6 +30,14 @@ Notable changes to `ia-reviver`. Format follows
 
 ### Changed
 
+- **No longer sends `Origin`/`Referer`.** qBittorrent runs its CSRF check *only*
+  when one of those headers is present, and compares it against the request's
+  `Host`; a mismatch is refused outright. Its source documents that sending
+  neither is allowed deliberately, "so [that] Web API users [don't] spoof
+  headers" — so omitting them removes a failure mode instead of adding one.
+- The development harness now starts qBittorrent with CSRF protection **on**,
+  matching a default deployment. It had been disabled, which is why a
+  write-refusing WebUI was never exercised during development.
 - `build_plans` folds its five identical per-candidate exception handlers into
   one.
 
