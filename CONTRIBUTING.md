@@ -61,5 +61,7 @@ Deliberately *not* in scope, so you don't waste time on a PR:
   *arr stack's.
 - Items archive.org marks `access-restricted-item` / `stream_only` — the files
   are not downloadable, so there is nothing to fill from.
-- Implementing webseeding in libtorrent. This tool exists because that isn't
-  happening.
+- Getting qBittorrent (libtorrent) to *finish* a torrent from archive.org's web
+  seed. BEP 19 is implemented and the client does download from that seed — it
+  was measured stopping at 80–87% and never resuming — so the web-seed plumbing
+  itself is not the thing to fix.

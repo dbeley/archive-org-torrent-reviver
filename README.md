@@ -17,14 +17,33 @@ own comment:
 > an updated torrent at … **Note: retrieval usually requires a client that
 > supports webseeding (GetRight style).**
 
-qBittorrent (libtorrent) does not do GetRight-style web seeding, so those
-torrents sit at `stalledDL` / 0% forever — while every byte they describe is
-still sitting on archive.org, one plain HTTP request away.
+That web seed is real, and qBittorrent does honour it: libtorrent implements
+BEP 19, loads the torrent's `url-list`, and starts pulling from archive.org with
+no peer involved. What it does not do is **finish**. Measured on qBittorrent
+5.2.3 with DHT, LSD and PeX disabled — and with the tracker reporting no seeders,
+so the web seed was the only possible source:
 
-`ia-reviver` closes that gap: it finds the dead archive.org torrents in your
+| item | size | what qBittorrent did on its own |
+|---|---|---|
+| `ramrakshastotram` | 13.9 MB, 16 files | 87.01% within ~20 s (peak ~980 KB/s), then `stalledDL`; unchanged 15 min later |
+| `1953_Movie_Trailers_Intermission_Six_Minutes` | 5.2 MB, 12 files | 80.89% within ~20 s, then `stalledDL` |
+| `0404_DuMont_Television_Network_Logo_and_Announcement` | 21 KB, 4 files | 0% — it never requested a byte |
+
+In all three cases archive.org was still serving every file the torrent
+describes, at the recorded size, `206` and range-correct, while the client sat
+still. The transfer stops short and does not resume. Why is not something this
+project claims to explain; the point is that a torrent stopped a piece short is
+*worse* than an obvious failure — it is not seeding, so the swarm stays empty
+however many people add the torrent.
+
+Reproduce it with the repo's own harness: `scripts/dev-qbittorrent.sh start`,
+add one of those torrents, and watch `amount_left` stop falling.
+
+`ia-reviver` closes that gap: it finds the stalled archive.org torrents in your
 client, downloads the missing files **from archive.org over HTTP**, drops them
 where qBittorrent expects them, forces a recheck, and restarts the torrent. The
-result is a real seeder for a torrent that had none — no peer required.
+result is a real seeder for a torrent that had none — no peer required, and
+without depending on the client's own web-seed transfer to reach 100%.
 
 ## How it works
 
