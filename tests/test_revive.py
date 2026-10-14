@@ -18,11 +18,12 @@ from pathlib import Path
 from ia_reviver.archive import ArchiveOrg
 from ia_reviver.bencode import parse_torrent
 from ia_reviver.downloader import Downloader
-from ia_reviver.planner import build_plan
+from ia_reviver.planner import CHANGED, PlannedFile, TorrentPlan, build_plan
 from ia_reviver.progress import Console
 from ia_reviver.qbittorrent import QbitClient
 from ia_reviver.revive import (
     LockError,
+    ReviveOutcome,
     build_plans,
     collect_candidates,
     revive_plan,
@@ -319,6 +320,32 @@ class EndToEndTest(unittest.TestCase):
         self.assertTrue(outcome.ok)
         self.assertTrue(outcome.seeding)
         self.assertIn("seeding", outcome.summary)
+
+    def test_a_changed_file_is_reported_as_uncompletable_not_partial(self):
+        """The bytes are gone for good, so calling this "partial" would invite
+        exactly the retry that can never work."""
+        plan = TorrentPlan(
+            torrent=qbt_torrent(),
+            identifier=IDENT,
+            root=IDENT,
+            files=[
+                PlannedFile(
+                    rel=f"{IDENT}/gone.xml",
+                    dest=self.root / IDENT / "gone.xml",
+                    size=100,
+                    item_name="gone.xml",
+                    item_path=b"gone.xml",
+                    action=CHANGED,
+                    note="archive.org serves 128 B where this torrent records 100 B",
+                )
+            ],
+        )
+        outcome = ReviveOutcome(plan=plan, identifier=IDENT, failed_files=1)
+
+        self.assertFalse(outcome.ok)
+        self.assertIn("cannot be completed", outcome.summary)
+        self.assertIn("gone.xml", outcome.summary)
+        self.assertNotIn("partial", outcome.summary)
 
     def test_lock_is_exclusive_then_released(self):
         def acquire_again():

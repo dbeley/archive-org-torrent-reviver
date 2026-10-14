@@ -15,6 +15,7 @@ Three properties matter here and are covered by explicit tests:
 
 from __future__ import annotations
 
+import http.client
 import os
 import threading
 import time
@@ -81,6 +82,35 @@ class RateLimiter:
             ahead = target - (time.monotonic() - self._start)
         if ahead > 0:
             time.sleep(min(ahead, 5.0))
+
+
+def _announced_size(response, offset: int) -> int | None:
+    """The file's total size as the server states it, or ``None`` if it doesn't.
+
+    ``None`` means "not stated", never "zero", so a response that omits a length
+    falls through to the byte count instead of looking like a mismatch.
+    """
+    if response.headers.get("Content-Encoding"):
+        # The body is encoded, so Content-Length is not the file's size.
+        return None
+    content_range = response.headers.get("Content-Range") or ""
+    if "/" in content_range:
+        total = content_range.rsplit("/", 1)[-1].strip()
+        if total.isdigit():
+            return int(total)
+    length = (response.headers.get("Content-Length") or "").strip()
+    if length.isdigit():
+        return int(length) + offset
+    return None
+
+
+def _changed_at_source(planned: PlannedFile, expected: int, actual: int) -> str:
+    """Explain a size this torrent can never match."""
+    return (
+        f"'{planned.item_name}' is {actual} B on archive.org but this torrent records "
+        f"{expected} B: the item changed after the .torrent was created, so those exact "
+        "bytes no longer exist and the recheck cannot reach 100%"
+    )
 
 
 def _within(root: Path, candidate: Path) -> bool:
@@ -271,12 +301,25 @@ class Downloader:
                 mode = "wb"
             else:
                 mode = "ab" if offset else "wb"
+
+            # Fail before transferring a single byte when the source no longer
+            # holds what this torrent records. archive.org regenerates its
+            # metadata files, so a torrent made earlier can name a size the item
+            # no longer serves — and no amount of downloading reproduces it.
+            announced = _announced_size(response, offset)
+            if announced is not None and announced != expected:
+                _unlink(part)
+                raise DownloadError(_changed_at_source(planned, expected, announced))
+
             with open(part, mode) as handle:
                 while True:
                     try:
                         chunk = response.read(CHUNK_SIZE)
-                    except (TimeoutError, OSError) as exc:
-                        raise _Transient(f"read timed out after {written} bytes: {exc}") from exc
+                    except (TimeoutError, OSError, http.client.HTTPException) as exc:
+                        # A connection that dies mid-body raises http.client errors
+                        # (IncompleteRead, BadStatusLine...). For a multi-gigabyte
+                        # file that is a blip to retry, not a reason to give up.
+                        raise _Transient(f"read failed after {written} bytes: {exc}") from exc
                     if not chunk:
                         break
                     handle.write(chunk)
@@ -284,6 +327,12 @@ class Downloader:
                     reporter.add_bytes(len(chunk))
                     self.limiter.consume(len(chunk))
 
+        if written > expected:
+            # The source is longer than the torrent says. Unlike a truncated
+            # transfer, no retry can help: the bytes wanted are gone, and leaving
+            # the oversized file behind would only litter the save_path.
+            _unlink(part)
+            raise DownloadError(_changed_at_source(planned, expected, written))
         if written != expected:
             raise _Transient(f"got {written} of {expected} bytes")
         return offset

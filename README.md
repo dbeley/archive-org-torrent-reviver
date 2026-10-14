@@ -294,6 +294,12 @@ rather than after planning an entire library.
   the tool says so instead of hammering it.
 - **It cannot invent missing peers for material archive.org no longer hosts.**
   It fills from the item's *current* files.
+- **Some torrents can never be completed, and the tool says so.** archive.org
+  regenerates its own metadata files, so an item can publish `_meta.xml` at a
+  different size than the `.torrent` made from it recorded. Those exact bytes no
+  longer exist anywhere, so that file is reported as `changed` and the torrent is
+  called out as impossible to complete — instead of being retried forever, or
+  left "100%" and subtly unable to seed.
 - **Bandwidth is real.** A single item can be hundreds of GiB; use `--dry-run`,
   `--max-bytes` and `--limit-rate` before pointing it at a whole library.
 - **Be a good citizen.** archive.org is a donation-funded non-profit. `--jobs 3`
@@ -303,7 +309,7 @@ rather than after planning an entire library.
 
 ```console
 $ nix develop
-$ python3 -m unittest discover -s tests -t .   # 127 tests, fully offline
+$ python3 -m unittest discover -s tests -t .   # 148 tests, fully offline
 $ ruff check src tests
 ```
 

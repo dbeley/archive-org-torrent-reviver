@@ -34,6 +34,21 @@ from .revive import (
 )
 from .util import format_table, human_bytes, is_tty, parse_size, short_hash
 
+
+def _state_label(plan) -> str:
+    """One-word state for the plan table.
+
+    A torrent archive.org can no longer supply in full is not "ok" merely because
+    most of its files remain: label it where the eye lands first, not only in a
+    warning further down.
+    """
+    if plan.stale:
+        return "stale"
+    if plan.unobtainable_files:
+        return f"incomplete ({len(plan.unobtainable_files)} file(s) gone)"
+    return "ok"
+
+
 PROG = "ia-reviver"
 
 EXIT_OK = 0
@@ -360,7 +375,7 @@ def _print_plan(console: Console, plans, *, verbose: bool) -> None:
                 str(len(plan.files)),
                 str(plan.to_fetch),
                 human_bytes(plan.to_fetch_bytes),
-                "stale" if plan.stale else "ok",
+                _state_label(plan),
             ]
         )
     console.info(
@@ -600,24 +615,30 @@ def cmd_revive(namespace: argparse.Namespace) -> int:
     revived = [o for o in outcomes if o.ok]
     seeding = [o for o in revived if o.seeding]
     held_back = [o for o in revived if not o.seeding]
-    partial = [o for o in outcomes if not o.ok and not o.error]
+    stalled = [o for o in outcomes if not o.ok and not o.error]
+    uncompletable = [o for o in stalled if o.plan.unobtainable_files]
+    partial = [o for o in stalled if not o.plan.unobtainable_files]
     errored = [o for o in outcomes if o.error]
     counts = [f"{len(seeding)} revived and seeding"]
     if held_back:
         counts.append(f"{len(held_back)} revived but stopped (start to seed)")
+    if uncompletable:
+        counts.append(f"{len(uncompletable)} cannot be completed (a file changed on archive.org)")
     counts.append(f"{len(partial)} partial")
     counts.append(f"{len(errored)} failed")
     console.info("  " + ", ".join(counts))
     console.info(
         f"  {human_bytes(sum(o.fetched_bytes for o in outcomes))} downloaded to archive.org's swarm"
     )
+    for outcome in uncompletable:
+        console.warn(f"  {outcome.identifier}: {outcome.summary}")
     if errored:
         for outcome in errored:
             console.error(f"  {outcome.identifier}: {outcome.error}")
 
     if errored:
         return EXIT_ERROR
-    return EXIT_PARTIAL if partial else EXIT_OK
+    return EXIT_PARTIAL if (partial or uncompletable) else EXIT_OK
 
 
 _COMMANDS = {"scan": cmd_scan, "revive": cmd_revive, "check": cmd_check}

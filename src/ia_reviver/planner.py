@@ -21,6 +21,7 @@ __all__ = [
     "FETCH",
     "TOUCH",
     "UNAVAILABLE",
+    "CHANGED",
     "PlanError",
     "NotArchiveTorrent",
     "PlannedFile",
@@ -34,6 +35,7 @@ HAVE = "have"
 FETCH = "fetch"
 TOUCH = "touch"
 UNAVAILABLE = "unavailable"
+CHANGED = "changed"
 
 
 class PlanError(RuntimeError):
@@ -66,8 +68,9 @@ class PlannedFile:
         return self.action == FETCH
 
     @property
-    def is_available(self) -> bool:
-        return self.action != UNAVAILABLE
+    def is_obtainable(self) -> bool:
+        """False when archive.org cannot supply the bytes this torrent needs."""
+        return self.action not in (UNAVAILABLE, CHANGED)
 
 
 @dataclass(slots=True)
@@ -97,6 +100,16 @@ class TorrentPlan:
         return [f for f in self.files if f.action == UNAVAILABLE]
 
     @property
+    def changed_files(self) -> list[PlannedFile]:
+        """Files archive.org still publishes, but at a different size than recorded."""
+        return [f for f in self.files if f.action == CHANGED]
+
+    @property
+    def unobtainable_files(self) -> list[PlannedFile]:
+        """Files whose exact bytes archive.org cannot supply any more."""
+        return self.unavailable_files + self.changed_files
+
+    @property
     def to_fetch_bytes(self) -> int:
         return sum(f.size for f in self.fetch_files)
 
@@ -111,7 +124,7 @@ class TorrentPlan:
     @property
     def revivable(self) -> bool:
         """True when every file can be supplied from archive.org."""
-        return not self.unavailable_files and bool(self.files)
+        return not self.unobtainable_files and bool(self.files)
 
     @property
     def memory_summary(self) -> str:
@@ -316,10 +329,24 @@ def build_plan(
             planned.action = UNAVAILABLE
             planned.note = planned.note or "not published on archive.org"
             plan.warnings.append(f"'{item_name}' is not in the item's file list")
+        elif manifest.size != size:
+            # archive.org still publishes the file, but not at the size this
+            # torrent records: the item changed after the .torrent was created,
+            # so the bytes this torrent needs no longer exist anywhere. A
+            # download cannot fix that — it would transfer the wrong data,
+            # leave a wrong-sized file behind, and the recheck could never
+            # reach 100%. Say so instead of queueing a transfer doomed to fail.
+            planned.action = CHANGED
+            planned.note = (
+                f"archive.org serves {manifest.size} B where this torrent records "
+                f"{size} B — changed after the .torrent was made"
+            )
+            plan.warnings.append(
+                f"'{item_name}' changed on archive.org ({size} B → {manifest.size} B); "
+                "this torrent cannot be completed by filling it from archive.org"
+            )
         else:
             planned.action = FETCH
-            if manifest.size != size:
-                planned.note = planned.note or "size mismatch — will be replaced"
 
         plan.files.append(planned)
 
@@ -330,7 +357,12 @@ def describe_selection(plans: list[TorrentPlan]) -> str:
     """Multi-line human summary of a set of plans."""
     lines: list[str] = []
     for plan in plans:
-        state = "stale" if plan.stale else "ok"
+        if plan.stale:
+            state = "stale"
+        elif plan.changed_files or plan.unavailable_files:
+            state = f"{len(plan.unobtainable_files)} file(s) gone from the source"
+        else:
+            state = "ok"
         lines.append(
             f"  {plan.identifier}  [{state}]  {len(plan.files)} files, "
             f"{plan.to_fetch} to fetch "

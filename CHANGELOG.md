@@ -8,6 +8,24 @@ Notable changes to `ia-reviver`. Format follows
 
 ### Fixed
 
+- **A file archive.org changed after the `.torrent` was made is no longer
+  downloaded in vain.** archive.org regenerates its own metadata files
+  (`_meta.xml` and friends), so a torrent created earlier can record a size the
+  item no longer serves — those exact bytes are gone from the archive, and no
+  transfer will ever reproduce them. The old order was: queue the file, transfer
+  it, notice the size differs, retry three times with backoff, then leave the
+  oversized file in the `save_path` for qBittorrent to hash. Now the planner sees
+  the mismatch against the item's published sizes and marks the file `changed`:
+  it is never queued, the plan table reports how many files are gone, and the
+  outcome reads "cannot be completed … their exact bytes no longer exist" rather
+  than "partial" — which invited a retry that could never work. A *truncated*
+  transfer (the server states the right length but delivers fewer bytes) is still
+  retried, and a genuine size change is now settled from the response headers
+  before a single body byte is transferred.
+- **A connection that dies mid-body is retried** instead of aborting the file.
+  `http.client` errors (`IncompleteRead`, `BadStatusLine`…) were not caught, so a
+  dropped connection during a multi-gigabyte transfer skipped the retry logic
+  entirely.
 - **A refused write no longer gets reported against the wrong endpoint.** A 403
   ("Forbidden") from qBittorrent means the WebUI did not accept the request as
   authenticated, and its check runs *before* the URL is routed — so every

@@ -247,6 +247,18 @@ class ReviveOutcome:
                 f"revived — qBittorrent verified 100% of the data and is now seeding "
                 f"(state: {self.state_after})"
             )
+        if self.plan.changed_files:
+            # Distinguish "archive.org no longer has these bytes" from a transfer
+            # that simply failed: no retry, no other tool, and no later run will
+            # fix this one, and calling it "partial" invites exactly that hope.
+            changed = self.plan.changed_files
+            shown = ", ".join(f.rel for f in changed[:3])
+            extra = f" (+{len(changed) - 3} more)" if len(changed) > 3 else ""
+            return (
+                f"cannot be completed: {len(changed)} file(s) changed on archive.org "
+                f"after this .torrent was made ({shown}{extra}) — their exact bytes no "
+                "longer exist, so the recheck can never reach 100%"
+            )
         return (
             f"partial: {self.progress_before * 100:.1f}% → "
             f"{self.progress_after * 100:.1f}% "

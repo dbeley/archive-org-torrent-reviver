@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 
 from ia_reviver.archive import ArchiveOrg
-from ia_reviver.downloader import PART_SUFFIX, Downloader, RateLimiter
+from ia_reviver.downloader import PART_SUFFIX, Downloader, RateLimiter, _announced_size
 from ia_reviver.planner import FETCH, TOUCH, PlannedFile, TorrentPlan
 from ia_reviver.progress import Console
 from ia_reviver.qbittorrent import Torrent
@@ -73,20 +73,30 @@ class _RangeHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Accept-Ranges", "bytes" if server.honour_range else "none")
         self.end_headers()
+
+        if self.path in server.truncate_paths:
+            # Announce the full length, deliver half of it, then hang up. This is
+            # a transfer cut short mid-stream, which is transient and must be
+            # retried — unlike a source that genuinely serves a different size.
+            self.wfile.write(body[: max(1, len(body) // 2)])
+            self.close_connection = True
+            return
         self.wfile.write(body)
 
 
 class _ItemServer:
     """Background HTTP server pretending to be ``archive.org/download``."""
 
-    def __init__(self, content, *, honour_range=True, fail_paths=None):
+    def __init__(self, content, *, honour_range=True, fail_paths=None, truncate_paths=None):
         self.honour_range = honour_range
         self.fail_paths = dict(fail_paths or {})
+        self.truncate_paths: set[str] = set(truncate_paths or ())
         self.seen: list[tuple[str, str | None]] = []
         self._server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _RangeHandler)
         self._server.content = content  # type: ignore[attr-defined]
         self._server.honour_range = honour_range  # type: ignore[attr-defined]
         self._server.fail_paths = self.fail_paths  # type: ignore[attr-defined]
+        self._server.truncate_paths = self.truncate_paths  # type: ignore[attr-defined]
         self._server.seen = self.seen  # type: ignore[attr-defined]
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
 
@@ -157,6 +167,34 @@ class _DownloaderBase(unittest.TestCase):
         )
 
 
+class AnnouncedSizeTest(unittest.TestCase):
+    """``_announced_size`` is what lets a doomed transfer fail before it starts."""
+
+    class _Response:
+        def __init__(self, headers):
+            self.headers = headers
+
+    def size(self, headers, offset=0):
+        return _announced_size(self._Response(headers), offset)
+
+    def test_a_ranged_response_reports_the_total_not_the_chunk(self):
+        headers = {"Content-Range": "bytes 100-3983/3984", "Content-Length": "3884"}
+        self.assertEqual(self.size(headers, offset=100), 3984)
+
+    def test_a_plain_response_reports_its_length(self):
+        self.assertEqual(self.size({"Content-Length": "3956"}), 3956)
+
+    def test_an_encoded_body_cannot_be_trusted_to_match_the_file_size(self):
+        headers = {"Content-Length": "900", "Content-Encoding": "gzip"}
+        self.assertIsNone(self.size(headers))
+
+    def test_a_response_that_states_no_length_says_so_rather_than_zero(self):
+        """None must mean "unknown"; treating it as 0 would flag every file."""
+        self.assertIsNone(self.size({}))
+        self.assertIsNone(self.size({"Content-Length": ""}))
+        self.assertIsNone(self.size({"Content-Range": "bytes 0-9/*"}))
+
+
 class DownloaderTest(_DownloaderBase):
     # ------------------------------------------------------------------ happy
 
@@ -218,12 +256,48 @@ class DownloaderTest(_DownloaderBase):
         # The poisoned part file must be gone so a re-run starts clean.
         self.assertFalse(self.part_path("alpha.txt").exists())
 
-    def test_truncated_response_is_reported_as_failed(self):
+    def test_truncated_response_is_retried_and_reported_as_failed(self):
+        """A transfer cut short is transient: the fix is to try again."""
+        path = f"/download/{IDENT}/alpha.txt"
+        self.server.truncate_paths.add(path)
         plan = self.make_plan([("alpha.txt", FETCH, self.md5("alpha.txt"))])
-        plan.files[0].size = len(PAYLOADS["alpha.txt"]) + 1  # one byte more than exists
-        results = Downloader(self.archive, console=self.quiet, retries=1).fetch_plan(plan)
+
+        results = Downloader(self.archive, console=self.quiet, retries=3).fetch_plan(plan)
+
         self.assertEqual(results[0].status, "failed")
-        self.assertIn("bytes", results[0].error)
+        self.assertIn("gave up after 3 attempts", results[0].error)
+        # It really did retry rather than deciding after one attempt.
+        self.assertEqual(len([p for p, _ in self.server.seen if p == path]), 3)
+
+    def test_size_the_source_no_longer_serves_is_permanent_not_retried(self):
+        """archive.org regenerates its metadata files, so a torrent made earlier
+        can name a size the item no longer serves. No retry can conjure bytes
+        that no longer exist, and the run must say so instead of grinding."""
+        path = f"/download/{IDENT}/alpha.txt"
+        plan = self.make_plan([("alpha.txt", FETCH, self.md5("alpha.txt"))])
+        plan.files[0].size = len(PAYLOADS["alpha.txt"]) + 28  # the item grew
+
+        results = Downloader(self.archive, console=self.quiet, retries=4).fetch_plan(plan)
+
+        self.assertEqual(results[0].status, "failed")
+        self.assertIn("changed after the .torrent was created", results[0].error)
+        self.assertIn(f"{len(PAYLOADS['alpha.txt'])} B", results[0].error)
+        self.assertIn(f"{len(PAYLOADS['alpha.txt']) + 28} B", results[0].error)
+        # One attempt only, and nothing left behind to poison a later recheck.
+        self.assertEqual(len([p for p, _ in self.server.seen if p == path]), 1)
+        self.assertFalse(self.part_path("alpha.txt").exists())
+        self.assertFalse(self.target("alpha.txt").exists())
+
+    def test_the_changed_size_is_detected_from_the_headers_alone(self):
+        """Content-Length settles it, so the body is never transferred."""
+        plan = self.make_plan([("alpha.txt", FETCH, self.md5("alpha.txt"))])
+        plan.files[0].size = len(PAYLOADS["alpha.txt"]) + 28
+        results = Downloader(self.archive, console=self.quiet).fetch_plan(plan)
+        self.assertEqual(results[0].status, "failed")
+        # Nothing was written: were the body read, the message would cite the
+        # bytes actually received rather than the announced transfer size.
+        self.assertFalse(self.part_path("alpha.txt").exists())
+        self.assertIn(f"{len(PAYLOADS['alpha.txt'])} B on archive.org", results[0].error)
 
     def test_md5_verification_can_be_disabled(self):
         plan = self.make_plan([("alpha.txt", FETCH, "0" * 32)])

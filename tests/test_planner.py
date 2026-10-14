@@ -6,8 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from ia_reviver.archive import ItemFile
 from ia_reviver.bencode import parse_torrent
 from ia_reviver.planner import (
+    CHANGED,
     FETCH,
     HAVE,
     TOUCH,
@@ -185,6 +187,50 @@ class TestRefusals(PlannerTestCase):
     def test_no_files_reported_is_an_error(self):
         with self.assertRaises(PlanError):
             self.build(FakeClient([]), self.torrent())
+
+
+class TestSourceChanged(PlannerTestCase):
+    """archive.org regenerates its metadata files, so an item can publish a file
+    at a different size than the .torrent made from it recorded. Those exact
+    bytes are gone: no download reproduces them, and the recheck can never reach
+    100%. Planning must say so instead of queueing a transfer that cannot work.
+    """
+
+    def grown(self):
+        """The item's manifest with ``beta.txt`` 28 bytes longer than recorded."""
+        raw, manifest = self.__class__.make_item()
+        manifest = dict(manifest)
+        beta = manifest["beta.txt"]
+        manifest["beta.txt"] = ItemFile(
+            name=beta.name, size=len(PAYLOADS["beta.txt"]) + 28, md5=beta.md5, sha1=beta.sha1
+        )
+        archive = FakeArchive(identifier=IDENT, torrent=parse_torrent(raw), item_files=manifest)
+        return archive
+
+    def test_a_file_the_source_serves_at_another_size_is_not_queued(self):
+        plan = build_plan(FakeClient(self.files()), self.grown(), self.torrent())
+
+        beta = next(f for f in plan.files if f.item_name == "beta.txt")
+        self.assertEqual(beta.action, CHANGED)
+        self.assertNotIn(beta, plan.fetch_files)
+        self.assertIn(str(len(PAYLOADS["beta.txt"]) + 28), beta.note)
+        self.assertTrue(any("changed on archive.org" in w for w in plan.warnings))
+        self.assertFalse(plan.revivable)
+        # The files that can still be supplied are untouched by this.
+        self.assertEqual(len(plan.fetch_files), 1)
+
+    def test_a_changed_file_already_correct_on_disk_stays_untouched(self):
+        """The right bytes sitting on disk still count, however the item moved."""
+        archive = self.grown()
+        dest = self.root / IDENT / "beta.txt"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(PAYLOADS["beta.txt"])
+
+        plan = build_plan(FakeClient(self.files()), archive, self.torrent())
+
+        beta = next(f for f in plan.files if f.item_name == "beta.txt")
+        self.assertEqual(beta.action, HAVE)
+        self.assertTrue(plan.revivable)
 
 
 class TestStaleness(PlannerTestCase):
