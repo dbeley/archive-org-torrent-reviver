@@ -8,6 +8,15 @@ Notable changes to `ia-reviver`. Format follows
 
 ### Fixed
 
+- **The README no longer claims libtorrent cannot webseed.** It can, and it
+  does: qBittorrent loads archive.org's BEP-19 `url-list` and pulls from it with
+  no peer involved. The old premise — "qBittorrent (libtorrent) does not do
+  GetRight-style web seeding, so those torrents sit at `stalledDL` / 0% forever"
+  — was wrong, and `CONTRIBUTING.md` repeated it as a reason not to work on
+  web-seed support. Both now state what was actually measured on qBittorrent
+  5.2.3: three items reached 87.01%, 80.89% and 0% and then stopped for good,
+  while archive.org went on serving every file they describe. No behaviour
+  changed; the tool is unaffected.
 - **A file archive.org changed after the `.torrent` was made is no longer
   downloaded in vain.** archive.org regenerates its own metadata files
   (`_meta.xml` and friends), so a torrent created earlier can record a size the
